@@ -7,19 +7,9 @@ import {
   specifiedRules as allGraphQLValidators,
 } from 'graphql';
 
-import {
-  flatten,
-  keys,
-  last,
-  reduce,
-  without,
-  includes,
-} from 'lodash';
+import { flatten, keys, last, reduce, without, includes } from 'lodash';
 
-import {
-  getGraphQLProjectConfig,
-  ConfigNotFoundError
-} from 'graphql-config'
+import { getGraphQLProjectConfig, ConfigNotFoundError } from 'graphql-config';
 
 import * as customRules from './rules';
 
@@ -27,26 +17,18 @@ const allGraphQLValidatorNames = allGraphQLValidators.map(rule => rule.name);
 
 // Map of env name to list of rule names.
 const envGraphQLValidatorNames = {
-  apollo: without(allGraphQLValidatorNames,
-    'KnownFragmentNames',
-    'NoUnusedFragments',
-  ),
-  lokka: without(allGraphQLValidatorNames,
-    'KnownFragmentNames',
-    'NoUnusedFragments',
-  ),
-  relay: without(allGraphQLValidatorNames,
+  apollo: without(allGraphQLValidatorNames, 'KnownFragmentNames', 'NoUnusedFragments'),
+  lokka: without(allGraphQLValidatorNames, 'KnownFragmentNames', 'NoUnusedFragments'),
+  relay: without(
+    allGraphQLValidatorNames,
     'KnownDirectives',
     'KnownFragmentNames',
     'NoUndefinedVariables',
     'NoUnusedFragments',
     'ProvidedNonNullArguments',
-    'ScalarLeafs',
+    'ScalarLeafs'
   ),
-  literal: without(allGraphQLValidatorNames,
-    'KnownFragmentNames',
-    'NoUnusedFragments',
-  ),
+  literal: without(allGraphQLValidatorNames, 'KnownFragmentNames', 'NoUnusedFragments'),
 };
 
 const internalTag = 'ESLintPluginGraphQLFile';
@@ -54,12 +36,7 @@ const gqlFiles = ['gql', 'graphql'];
 
 const defaultRuleProperties = {
   env: {
-    enum: [
-      'lokka',
-      'relay',
-      'apollo',
-      'literal',
-    ],
+    enum: ['lokka', 'relay', 'apollo', 'literal'],
   },
   schemaJson: {
     type: 'object',
@@ -75,27 +52,27 @@ const defaultRuleProperties = {
     pattern: '^[$_a-zA-Z$_][a-zA-Z0-9$_]+(\\.[a-zA-Z0-9$_]+)?$',
   },
   projectName: {
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 function createRule(context, optionParser) {
   const tagNames = new Set();
   const tagRules = [];
   const options = context.options.length === 0 ? [{}] : context.options;
   for (const optionGroup of options) {
-    const {schema, env, tagName, validators} = optionParser(optionGroup);
-    const boundValidators = validators.map(v => (ctx) => v(ctx, optionGroup));
+    const { schema, env, tagName, validators } = optionParser(optionGroup);
+    const boundValidators = validators.map(v => ctx => v(ctx, optionGroup));
     if (tagNames.has(tagName)) {
       throw new Error('Multiple options for GraphQL tag ' + tagName);
     }
     tagNames.add(tagName);
-    tagRules.push({schema, env, tagName, validators: boundValidators});
+    tagRules.push({ schema, env, tagName, validators: boundValidators });
   }
 
   return {
     TaggedTemplateExpression(node) {
-      for (const {schema, env, tagName, validators} of tagRules) {
+      for (const { schema, env, tagName, validators } of tagRules) {
         if (templateExpressionMatchesTag(tagName, node)) {
           return handleTemplateTag(node, context, schema, env, validators);
         }
@@ -106,25 +83,30 @@ function createRule(context, optionParser) {
 
 // schemaJson, schemaJsonFilepath, schemaString and projectName are mutually exclusive:
 const schemaPropsExclusiveness = {
-  oneOf: [{
-    required: ['schemaJson'],
-    not: { required: ['schemaString', 'schemaJsonFilepath', 'projectName']}
-  }, {
-    required: ['schemaJsonFilepath'],
-    not: { required: ['schemaJson', 'schemaString', 'projectName']}
-  }, {
-    required: ['schemaString'],
-    not: { required: ['schemaJson', 'schemaJsonFilepath', 'projectName']}
-  }, {
-    not: {
-      anyOf: [
-        { required: ['schemaString'] },
-        { required: ['schemaJson'] },
-        { required: ['schemaJsonFilepath'] },
-      ]
-    }
-  }],
-}
+  oneOf: [
+    {
+      required: ['schemaJson'],
+      not: { required: ['schemaString', 'schemaJsonFilepath', 'projectName'] },
+    },
+    {
+      required: ['schemaJsonFilepath'],
+      not: { required: ['schemaJson', 'schemaString', 'projectName'] },
+    },
+    {
+      required: ['schemaString'],
+      not: { required: ['schemaJson', 'schemaJsonFilepath', 'projectName'] },
+    },
+    {
+      not: {
+        anyOf: [
+          { required: ['schemaString'] },
+          { required: ['schemaJson'] },
+          { required: ['schemaJsonFilepath'] },
+        ],
+      },
+    },
+  ],
+};
 
 export const rules = {
   'template-strings': {
@@ -136,24 +118,25 @@ export const rules = {
           properties: {
             ...defaultRuleProperties,
             validators: {
-              oneOf: [{
-                type: 'array',
-                uniqueItems: true,
-                items: {
-                  enum: allGraphQLValidatorNames,
+              oneOf: [
+                {
+                  type: 'array',
+                  uniqueItems: true,
+                  items: {
+                    enum: allGraphQLValidatorNames,
+                  },
                 },
-              }, {
-                enum: [
-                  'all',
-                ],
-              }],
+                {
+                  enum: ['all'],
+                },
+              ],
             },
           },
           ...schemaPropsExclusiveness,
-        }
+        },
       },
     },
-    create: (context) => createRule(context, parseOptions)
+    create: context => createRule(context, parseOptions),
   },
   'named-operations': {
     meta: {
@@ -166,11 +149,13 @@ export const rules = {
         },
       },
     },
-    create: (context) => {
-      return createRule(context, (optionGroup) => parseOptions({
-        validators: ['OperationsMustHaveNames'],
-        ...optionGroup,
-      }));;
+    create: context => {
+      return createRule(context, optionGroup =>
+        parseOptions({
+          validators: ['OperationsMustHaveNames'],
+          ...optionGroup,
+        })
+      );
     },
   },
   'required-fields': {
@@ -215,11 +200,13 @@ export const rules = {
         },
       },
     },
-    create: (context) => {
-      return createRule(context, (optionGroup) => parseOptions({
-        validators: ['typeNamesShouldBeCapitalized'],
-        ...optionGroup,
-      }));
+    create: context => {
+      return createRule(context, optionGroup =>
+        parseOptions({
+          validators: ['typeNamesShouldBeCapitalized'],
+          ...optionGroup,
+        })
+      );
     },
   },
 };
@@ -246,20 +233,23 @@ function parseOptions(optionGroup) {
   } else {
     try {
       const config = getGraphQLProjectConfig('.', projectName);
-      schema = config.getSchema()
+      schema = config.getSchema();
     } catch (e) {
       if (e instanceof ConfigNotFoundError) {
-        throw new Error('Must provide .graphqlconfig file or pass in `schemaJson` option ' +
-          'with schema object or `schemaJsonFilepath` with absolute path to the json file.');
+        throw new Error(
+          'Must provide .graphqlconfig file or pass in `schemaJson` option ' +
+            'with schema object or `schemaJsonFilepath` with absolute path to the json file.'
+        );
       }
       throw e;
     }
-
   }
 
   // Validate env
   if (env && env !== 'lokka' && env !== 'relay' && env !== 'apollo' && env !== 'literal') {
-    throw new Error('Invalid option for env, only `apollo`, `lokka`, `relay`, and `literal` supported.')
+    throw new Error(
+      'Invalid option for env, only `apollo`, `lokka`, `relay`, and `literal` supported.'
+    );
   }
 
   // Validate tagName and set default
@@ -294,7 +284,7 @@ function parseOptions(optionGroup) {
       return require(`graphql/validation/rules/${name}`)[name];
     }
   });
-  return {schema, env, tagName, validators};
+  return { schema, env, tagName, validators };
 }
 
 function initSchema(json) {
@@ -310,7 +300,7 @@ function initSchemaFromFile(jsonFile) {
 }
 
 function initSchemaFromString(source) {
-  return buildSchema(source)
+  return buildSchema(source);
 }
 
 function templateExpressionMatchesTag(tagName, node) {
@@ -322,8 +312,10 @@ function templateExpressionMatchesTag(tagName, node) {
     }
   } else if (tagNameSegments === 2) {
     // Check for dotted identifier, like 'Relay.QL'
-    if (node.tag.type !== 'MemberExpression' ||
-        node.tag.object.name + '.' + node.tag.property.name !== tagName) {
+    if (
+      node.tag.type !== 'MemberExpression' ||
+      node.tag.object.name + '.' + node.tag.property.name !== tagName
+    ) {
       return false;
     }
   } else {
@@ -409,10 +401,11 @@ function replaceExpressions(node, context, env) {
       // In Apollo, interpolation is only valid outside top-level structures like `query` or `mutation`.
       // We'll check to make sure there's an equivalent set of opening and closing brackets, otherwise
       // we're attempting to do an invalid interpolation.
-      if ((chunk.split('{').length - 1) !== (chunk.split('}').length - 1)) {
+      if (chunk.split('{').length - 1 !== chunk.split('}').length - 1) {
         context.report({
           node: value,
-          message: 'Invalid interpolation - fragment interpolation must occur outside of the brackets.',
+          message:
+            'Invalid interpolation - fragment interpolation must occur outside of the brackets.',
         });
         throw new Error('Invalid interpolation');
       }
@@ -427,7 +420,7 @@ function replaceExpressions(node, context, env) {
         // is a variable
 
         // Add 2 for brackets in the interpolation
-        const placeholder = strWithLen(nameLength + 2)
+        const placeholder = strWithLen(nameLength + 2);
         chunks.push('$' + placeholder);
       } else if (env === 'lokka' && /\.\.\.\s*$/.test(chunk)) {
         // This is Lokka-style fragment interpolation where you actually type the '...' yourself
@@ -458,7 +451,7 @@ function replaceExpressions(node, context, env) {
 
 function strWithLen(len) {
   // from http://stackoverflow.com/questions/14343844/create-a-string-of-variable-length-filled-with-a-repeated-character
-  return new Array(len + 1).join( 'x' );
+  return new Array(len + 1).join('x');
 }
 
 const gqlProcessor = {
@@ -477,17 +470,21 @@ const gqlProcessor = {
   },
   postprocess: function(messages) {
     // only report graphql-errors
-    return flatten(messages).filter((message) => {
-      return includes(keys(rules).map((key) => `graphql/${key}`), message.ruleId);
-    })
-  }
-}
+    return flatten(messages).filter(message => {
+      return includes(keys(rules).map(key => `graphql/${key}`), message.ruleId);
+    });
+  },
+};
 
-export const processors = reduce(gqlFiles, (result, value) => {
+export const processors = reduce(
+  gqlFiles,
+  (result, value) => {
     return { ...result, [`.${value}`]: gqlProcessor };
-}, {})
+  },
+  {}
+);
 
 export default {
   rules,
-  processors
-}
+  processors,
+};

@@ -4,9 +4,7 @@ export function OperationsMustHaveNames(context) {
   return {
     OperationDefinition(node) {
       if (!node.name) {
-        context.reportError(
-          new GraphQLError("All operations must be named", [ node ])
-        );
+        context.reportError(new GraphQLError('All operations must be named', [node]));
       }
     },
   };
@@ -24,7 +22,10 @@ export function RequiredFields(context, options) {
         const fieldAvaliableOnType = def.type && def.type._fields && def.type._fields[field];
 
         function recursivelyCheckOnType(ofType, field) {
-          return (ofType._fields && ofType._fields[field]) || (ofType.ofType && recursivelyCheckOnType(ofType.ofType, field));
+          return (
+            (ofType._fields && ofType._fields[field]) ||
+            (ofType.ofType && recursivelyCheckOnType(ofType.ofType, field))
+          );
         }
 
         let fieldAvaliableOnOfType = false;
@@ -33,7 +34,7 @@ export function RequiredFields(context, options) {
         }
         if (fieldAvaliableOnType || fieldAvaliableOnOfType) {
           const fieldWasRequested = !!node.selectionSet.selections.find(
-            n => (n.name.value === field || n.kind === 'FragmentSpread')
+            n => n.name.value === field || n.kind === 'FragmentSpread'
           );
           if (!fieldWasRequested) {
             context.reportError(
@@ -52,9 +53,9 @@ export function typeNamesShouldBeCapitalized(context) {
       const typeName = node.name.value;
       if (typeName[0] == typeName[0].toLowerCase()) {
         context.reportError(
-          new GraphQLError("All type names should start with a capital letter", [ node ])
+          new GraphQLError('All type names should start with a capital letter', [node])
         );
       }
-    }
-  }
+    },
+  };
 }
